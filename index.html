@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/src/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + Lit App</title>
+    <script type="module" src="/src/filter-sort-ctrl.ts"></script>
+	<style>
+		:root {
+			--txt-colour: #fff;
+			--bg-colour: #1b1b1b;
+			--border-radius: 1.5rem;
+
+			color: var(--txt-colour);
+			background-color: var(--bg-colour);
+
+		}
+		body {
+			color: var(--txt-colour);
+			background-color: var(--bg-colour);
+			font-family: Arial, Helvetica, sans-serif;
+		}
+	</style>
+  </head>
+  <body>
+	<h1>Filter/Sort Control element</h1>
+	<pre><code>&lt;filter-sort-ctrl id="filter-sort-ctrl__1"&gt;Name&lt;filter-sort-ctrl&gt;</code></pre>
+    <filter-sort-ctrl id="filter-sort-ctrl__1">
+      Name
+    </filter-sort-ctrl>
+
+	<hr />
+
+	<pre><code>&lt;filter-sort-ctrl id="filter-sort-ctrl__2" data-datatype="bool"&gt;Is cool&lt;filter-sort-ctrl&gt;</code></pre>
+    <filter-sort-ctrl id="filter-sort-ctrl__2" data-datatype="bool">
+		Is cool
+	</filter-sort-ctrl>
+
+	<hr />
+
+	<pre><code>&lt;filter-sort-ctrl id="filter-sort-ctrl__3" data-datatype="option"&gt;Is cool&lt;filter-sort-ctrl&gt;</code></pre>
+    <filter-sort-ctrl id="filter-sort-ctrl__3" data-datatype="option">
+		Which one
+	</filter-sort-ctrl>
+  </body>
+</html>
