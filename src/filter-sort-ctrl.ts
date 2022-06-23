@@ -67,7 +67,7 @@ export class FilterSortCtrl extends LitElement {
    * last changed
    */
   @property({ type: Number, reflect: true })
-  childID : number = 0;
+  childID : number = -1;
 
   /**
    * Value on which to filter text fields
