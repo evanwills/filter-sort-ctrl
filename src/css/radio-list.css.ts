@@ -20,6 +20,18 @@ export const radioList = (minWidth: number = 35) : CSSResult => {
       display: inline-flex;
     }
 
+    @media screen and (min-width: ${minWidth}rem) {
+      .radio-list__wrap {
+        /* border-radius: var(--border-radius); */
+        flex-direction: row;
+        padding: 0;
+      }
+    }
+
+    .radio-list_item {
+      box-sizing: border-box;
+    }
+
     .radio-list {
       align-content: stretch;
       align-items: stretch;
@@ -34,23 +46,16 @@ export const radioList = (minWidth: number = 35) : CSSResult => {
       padding: 0.1rem 0.3rem;
       position: relative;
     }
-    .radio-list--yes-no {
+    .radio-list--short {
       display: inline-flex;
     }
 
-    @media screen and (min-width: ${minWidth}rem) {
-      .radio-list__wrap {
-        /* border-radius: var(--border-radius); */
-        flex-direction: row;
-        padding: 0;
-      }
-    }
-
     .radio-list__wrap > li {
-      flex-grow: 1;
+      // flex-grow: 1;
       list-style-type: none;
       margin: 0;
       padding: 0;
+      // box-sizing: content-box;
     }
     .radio-list__label {
       /* background-color: var(--bg-colour); */
@@ -65,11 +70,11 @@ export const radioList = (minWidth: number = 35) : CSSResult => {
       transition: color var(--ease) var(--timing) background-color var(--ease) var(--timing);
       width: calc(100% - .5rem);
     }
-    .radio-list__label--yes-no {
+    .radio-list__label--short {
       padding: 0.3rem 2.5em;
       width: auto;
     }
-    .radio-list__label--yes-no.radio-list__label--checked {
+    .radio-list__label--short.radio-list__label--checked {
       padding: 0.3rem 2.25rem 0.3rem 2.75rem;
     }
     .radio-list__label::after {

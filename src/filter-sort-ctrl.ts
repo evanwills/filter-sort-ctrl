@@ -1,15 +1,16 @@
-import { html, css, LitElement, TemplateResult } from 'lit';
+import { html, LitElement, TemplateResult, CSSResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { ifDefined } from 'lit/directives/if-defined.js';
+// import { ifDefined } from 'lit/directives/if-defined.js';
 
-import { UBoolState, FEventHandler, IDbEnum, IListCtrlItem, IListCtrlOptionItem } from './types/Igeneral';
+import { UBoolState, IDbEnum, IListCtrlItem, IListCtrlOptionItem } from './types/Igeneral';
 
-import { srOnly } from './css/sr-only.css';
-import { radioList } from './css/radio-list.css';
+import { style } from './css/styles.css';
 
-import { isInt } from './utilities/validation';
+// import { isInt, isNumber, isStr } from './utilities/validation';
 import { isoStrToTime } from './utilities/sanitise';
 import { getBoolState } from './utilities/general.utils';
+import { getInput, getOptMode, getOptStr, getUpdatedFilterOpt, getToggleInput, parseOptStr } from './utilities/filter-sort.utils';
+import { IFilterSortCtrl } from './types/IFilterSortCtrl';
 
 
 
@@ -20,7 +21,7 @@ import { getBoolState } from './utilities/general.utils';
  * @csspart button - The button
  */
 @customElement('filter-sort-ctrl')
-export class FilterSortCtrl extends LitElement {
+export class FilterSortCtrl extends LitElement implements IFilterSortCtrl {
   /**
    * Label for input (to show the user what the input is for)
    */
@@ -116,7 +117,7 @@ export class FilterSortCtrl extends LitElement {
    * filtered/sorted
    */
   @property()
-  options : Array<IDbEnum> = [];
+  options : Array<IDbEnum>|string = [];
 
   /**
    * Value to be used when a change action is triggered
@@ -152,190 +153,9 @@ export class FilterSortCtrl extends LitElement {
   // private oldMin : string = '';
   // private oldMax : string = '';
   private oldOpt : string = '';
-  private filteredOptions : Array<IListCtrlOptionItem> = [];
-  private _handler : FEventHandler|null = null
+  public filteredOptions : Array<IListCtrlOptionItem> = [];
 
-  static styles = css`
-    :host {
-      --bg-colour: #1b1b1b;
-      --btn-padding-top: 1.3rem;
-      --over-colour: rgba(0, 0, 0, 0.85);
-      --over-colour--rev: rgba(255, 255, 255, 0.85);
-      --text-colour: #fff;
-      --trans-speed: 0.3s;
-    }
-    ${srOnly}
-    .wrap {
-      background-color: var(--bg-colour);
-      color: var(--text-colour);
-      left: 50%;
-      max-width: 35rem;
-      opacity: 0;
-      padding: 2rem;
-      position: fixed;
-      text-align: left;
-      top: 50%;
-      transform: scale(0) translate(-50%, -50%);
-      transition: opacity ease-in-out var(--trans-speed) 0.15s,
-                  height ease-in-out var(--trans-speed) 0.15s,
-                  transform ease-in-out var(--trans-speed) 0.15s;
-      transform-origin: 0 0;
-      z-index: 100;
-      width: calc(100% - 2rem);
-    }
-    button:hover {
-      cursor: pointer;
-    }
-    h3 {
-      margin: 0 0 0.5rem;
-    }
-    .wrap--show {
-      opacity: 1;
-      transform: scale(1) translate(-50%, -50%);
-    }
-    .bg-close {
-      background-color: var(--over-colour);
-      border-radius; 30rem;
-      border: none;
-      bottom: 0;
-      height: 100%;
-      left: 0;
-      right: 0;
-      opacity: 0;
-      position: fixed;
-      top: 0;
-      transform: scale(0);
-      transition: opacity ease-in-out var(--trans-speed),
-                  transform ease-in-out var(--trans-speed);
-      width: 100%;
-      z-index: 99
-    }
-    .bg-close--show {
-      opacity: 1;
-      transform: scale(1);
-      z-index: 99
-    }
-    .btn-open {
-      background-color: transparent;
-      border: none;
-      color: var(--text-colour);
-      display: inline-block;
-      font-size: 1rem;
-      font-weight: bold;
-      padding: 0.75rem 2.5rem 0.75rem 2rem;
-      position: relative;
-      width: 100%;
-    }
-    ::slotted(*) {
-      font-weight: bold;
-    }
-    .btn-open::before {
-      content: '\u22EE';
-      display: inline-block;
-      font-size: 1.3rem;
-      padding: 0.4rem 1rem;
-      position: absolute;
-      right: 0;
-      top: 50%;
-      transform: translateY(-52%);
-    }
-    .btn-close {
-      background-color: var(--text-colour);
-      border-radius: 1rem;
-      border: none;
-      color: var(--bg-colour);
-      display: inline-block;
-      font-weight: bold;
-      height: 1.5rem;
-      line-height: 0.25rem;
-      position: absolute;
-      right: -0.5rem;
-      top: -0.5rem;
-      width: 1.5rem;
-    }
-    .btn-close::before {
-      bottom: 0.05rem;
-      content: '\u2717';
-      position: relative;
-    }
-    .sort-btn {
-      background-color: var(--text-colour);
-      border: none;
-      display: block;
-      font-weight: bold;
-      height: 1.25rem;
-      justify-self: end;
-      padding: 0.5rem;
-      width: 1.5rem;
-    }
-    .sort-btn::before {
-      content: ">";
-      position: absolute;
-      transform-origin: 100% 50%;
-    }
-    .ascending {
-      align-self: end;
-      border-bottom: 0.05rem solid var(--bg-colour);
-      border-top-left-radius: 1rem;
-      border-top-right-radius: 1rem;
-      grid-area: sort-up;
-      padding: 0.5rem 0.5rem 0.2rem 0.5rem;
-    }
-    .ascending::before {
-      transform: rotate(-90deg) translate(140%, -75%) scaleY(1.75);
-    }
-    .decending {
-      align-self: top;
-      border-bottom-left-radius: 1rem;
-      border-bottom-right-radius: 1rem;
-      border-top: 0.05rem solid var(--bg-colour);
-      grid-area: sort-down;
-      padding: 0.5rem 0.5rem 0.2rem 0.5rem;
-    }
-    .decending::before {
-      transform: rotate(90deg) translate(-35%, 59%) scaleY(1.75);
-    }
-    .fields {
-      align-self: center;
-      display: grid;
-      grid-template-areas: 'fields sort-up'
-                           'fields sort-down';
-      grid-template-columns: 1fr 2.5rem;
-      width: 100%;
-    }
-    .fields--help {
-      grid-template-areas: 'fields  sort-up'
-                           'fields sort-down'
-                           ' help      .';
-    }
-    .fields .fields-list {
-      grid-area: fields;
-      list-style-type: none;
-      padding: 0;
-      margin: 0.5rem 0;
-    }
-    .fields li {
-      margin-top: 0.5rem;
-    }
-    .fields label {
-      display: inline-block;
-      width: 5rem;
-    }
-    .fields input[type=text] {
-      display: inline-block;
-      width: calc(100% - 6rem);
-    }
-    .help-block {
-      font-weight: normal;
-      grid-area: help;
-    }
-    code {
-      background-color: var(--over-colour);
-      border: 0.05rem solid var(--over-colour--rev);
-      padding: 0.2rem 0.3rem;
-    }
-    ${radioList()}
-  `;
+  static styles : CSSResult = style
 
 
   /**
@@ -362,22 +182,27 @@ export class FilterSortCtrl extends LitElement {
     }
 
     if (this.dataType === 'option') {
-      this.filteredOptions = this.options.map(
+      if (typeof this.options === 'string') {
+        this.options = parseOptStr(this.options);
+      }
+
+      this.filteredOptions = (this.options as Array<IDbEnum>).map(
         (option: IDbEnum) : IListCtrlOptionItem => {
           return {
             id: option.id,
-            mode: this._getOptMode(option.id, tmp)
+            mode: getOptMode(option.id, tmp)
           }
         }
       );
     }
-
-    this._handler = this._getInputHandler
   }
 
   /**
    * Handle opening & closing the main user interface for this
    * component
+   *
+   * If appropriate dispatch a "change" action for the client to
+   * handle
    *
    * @param _e Dom Event that triggered the call to this method
    */
@@ -385,10 +210,17 @@ export class FilterSortCtrl extends LitElement {
     this.expanded = !this.expanded
   }
 
-  private _getInputHandler(e : Event) : void {
+  /**
+   * Handle user interaction with filter controls
+   *
+   * @param e Event triggered by user interaction
+   *
+   * @returns
+   */
+  private _handler(e : Event) : void {
     const input = e.target as HTMLInputElement;
     let ok = false;
-    console.group('_getInputHandler()')
+    console.group('_handler()')
     console.log('this:', this);
     console.log('this.dataType:', this.dataType);
     console.log('input:', input);
@@ -451,11 +283,13 @@ export class FilterSortCtrl extends LitElement {
         break;
 
       case 'option':
-        const tmpO = this._getOptStr(input);
+        this.filteredOptions = getUpdatedFilterOpt(this.filteredOptions, input);
+        const tmpO = getOptStr(this.filteredOptions);
           if (this.oldOpt !== tmpO) {
             this.value = tmpO;
             ok = true;
             this.dataset.subtype2 = 'option';
+            this.oldOpt = tmpO;
           }
         break;
 
@@ -476,6 +310,15 @@ export class FilterSortCtrl extends LitElement {
         this.value = this.order;
         ok = true;
         break;
+
+      case 'toggle-min-max':
+        this.showMinMax = !this.showMinMax;
+        break;
+
+      case 'toggle-date':
+        this.dataType = (this.dataType === 'date')
+          ? 'datetime'
+          : 'date';
     }
 
     if (ok === true) {
@@ -485,196 +328,95 @@ export class FilterSortCtrl extends LitElement {
     }
     console.log('this:', this)
     console.log('this.dataset:', this.dataset)
+    console.log('this.value:', this.value);
     console.groupEnd();
   }
 
-  private _getOptStr(input: HTMLInputElement) : string {
-    let childID = (typeof input.dataset.childId !== 'undefined')
-      ? parseInt(input.dataset.childId)
-      : -1;
-
-    console.group('_getOptStr()')
-    console.log('childID:', childID)
-    console.log('input.value:', input.value)
-    console.log('input.dataset:', input.dataset)
-    console.log('this.filteredOptions:', this.filteredOptions)
-
-    this.filteredOptions = this.filteredOptions.map((item : IListCtrlOptionItem) : IListCtrlOptionItem => {
-      return (item.id === childID)
-        ? { ...item, mode: getBoolState(input.value) }
-        : item;
-    });
-    console.log('this.filteredOptions:', this.filteredOptions)
-
-    let output = '';
-    let sep = '';
-    for (let a = 0; a < this.filteredOptions.length; a += 1) {
-      if (this.filteredOptions[a].mode !== 0) {
-        output += sep + this.filteredOptions[a].id + ':' + this.filteredOptions[a].mode;
-        sep = ',';
-        console.log('output:', output);
-      }
+  private _renderUI(id : string) : TemplateResult {
+    let helpBlock : TemplateResult|string = '';
+    let helpClass : string = '';
+    let decClass = '';
+    let decLabel : string = 'Decending';
+    let ascClass = '';
+    let ascLabel : string = 'Ascending';
+    if (this.order < 0) {
+      decClass = ' decending-true';
+      decLabel = 'Sorted by decending Order'
+    } else if (this.order > 0) {
+      decClass = ' ascending-true';
+      decLabel = 'Sorted by ascending Order'
     }
-    console.log('output:', output);
-    console.groupEnd();
-    return output;
-  }
-
-  private _incIgnoreExc(id: string, value: number, handler : FEventHandler, childID: number|undefined = undefined) : TemplateResult {
-    // console.group('_incIgnoreExc()')
-    // console.log('id:', id)
-    // console.log('value:', value)
-    // console.log('isInt(value):', isInt(value))
-    // console.log('field:', field)
-    // console.log('this.stateData:', this.stateData)
-    const _dataType : string = (typeof childID === 'number')
-      ? 'option'
-      : 'bool';
-    // console.groupEnd();
-    return html`
-      <ul class="radio-list__wrap radio-list__wrap--short">
-        <li>
-          <input type="radio"
-                 name="${id}"
-                 id="${id}__0"
-                 class="radio-list__input"
-                 value="0"
-                 data-type="${_dataType}"
-                 data-child-id="${ifDefined(childID)}"
-                ?checked=${!isInt(value) || value === 0}
-                @change=${handler} />
-          <label for="${id}__0" class="radio-list__label radio-list__label--short">
-            Ignore
-          </label>
-        </li>
-        <li>
-          <input type="radio"
-                 name="${id}"
-                 id="${id}__1"
-                 class="radio-list__input"
-                 value="1"
-                 data-type="${_dataType}"
-                 data-child-id="${ifDefined(childID)}"
-                ?checked=${value > 0}
-                @change=${handler} />
-          <label for="${id}__1" class="radio-list__label radio-list__label--short">
-            Include
-          </label>
-        </li>
-        <li>
-          <input type="radio"
-                 name="${id}"
-                 id="${id}__-1"
-                 class="radio-list__input"
-                 value="-1"
-                 data-type="${_dataType}"
-                 data-child-id="${ifDefined(childID)}"
-                ?checked=${value < 0}
-                @change=${handler} />
-          <label for="${id}__-1" class="radio-list__label radio-list__label--short">
-            Exclude
-          </label>
-        </li>
-      </ul>`;
-  }
-
-  private _getOptMode = (id: number, filters: Array<IListCtrlOptionItem>) : UBoolState => {
-    const filter = filters.filter((item: IListCtrlOptionItem) => (item.id === id));
-    return (filter.length === 1)
-      ? filter[0].mode
-      : 0
-  }
-
-  private _getOption = (id: string, option: IDbEnum, filters: Array<IListCtrlOptionItem>, handler : FEventHandler) : TemplateResult => {
-    const val = this._getOptMode(option.id, filters);
-    return html`
-      <li>
-        ${option.name}:
-        ${this._incIgnoreExc(id + '__' + option.id , val, handler, option.id)}
-      </li>
-    `
-  }
-
-  private _getOptions(
-    id: string, options: Array<IDbEnum>, filteredOptions: Array<IListCtrlOptionItem>, handler: FEventHandler
-  ) : TemplateResult {
-    return html`
-      <ul>
-        ${options.map((option : IDbEnum) => this._getOption(id, option, filteredOptions, handler))}
-      </ul>
-    `;
-  }
-
-  private _getInput(
-    id: string, label: string, value : string|number, field: string
-  ) : TemplateResult {
-    const _id = id + '__' + field;
-    let _type = this.dataType;
-    let _value = value;
-    let _special : TemplateResult|string = '';
-
-    if (value === 'auto') {
-      switch (field) {
-        case 'filter':
-          _value = this.filter;
-          break;
-        case 'bool':
-          _value = this.bool;
-          break;
-      }
-    }
-    // console.group('_getInput()')
-    // console.log('_value:', _value)
-    // console.log('_type:', _type)
-    // console.log('_id:', _id)
+    let toggleMinMax = false;
+    let toggleFullDate = false;
+    let allowMinMax = false;
 
     switch (this.dataType) {
+      case 'number':
+        allowMinMax = true;
+        toggleMinMax = true;
+        break;
+
       case 'date':
-        _value = (isInt(value) && value > 0)
-          ? new Date(value as number).toISOString()
-          : '';
-        _type = 'date';
-        break;
-
       case 'datetime':
-        _value = (isInt(value) && value > 0)
-          ? new Date(value as number).toISOString()
-          : '';
-        _type = 'datetime-local';
-        break;
-
-      case 'bool':
-        _special = this._incIgnoreExc(_id, _value as number, this._getInputHandler);
-        break;
-
-      case 'option':
-        // console.log('this.options:', this.options)
-        _special = this._getOptions(_id, this.options, this.filteredOptions, this._getInputHandler);
-        break;
+        allowMinMax = true;
+        toggleFullDate = true;
+        toggleMinMax = true;
     }
-    // console.log('_type:', _type)
-    // console.groupEnd();
+
+    const fields : Array<TemplateResult> = (allowMinMax === true && this.showMinMax)
+      ? [
+          getInput(id, 'Minimum', this.min, 'min', this, this._handler),
+          getInput(id, 'Maximum', this.max, 'max', this, this._handler)
+        ]
+      : [getInput(id, 'Filter by', 'auto', 'filter', this, this._handler)];
+
+    if (toggleMinMax) {
+      fields.push(
+        getToggleInput(
+          id,
+          'toggle-min-max',
+          this.showMinMax,
+          'Filter on Min and/or Max',
+          'Filter on single value',
+          this._handler
+        )
+      );
+    }
+    if (toggleFullDate) {
+      fields.push(
+        getToggleInput(
+          id,
+          'toggle-date',
+          (this.dataType === 'datetime'),
+          'Filter on full date/time',
+          'Filter on short date',
+          this._handler
+        )
+      );
+    }
+    // if (this.dataType === 'text') {
+    //   helpClass = ' fields--help';
+    //   helpBlock = helpTxt();
+    // }
 
     return html`
-      <li>
-        <label for="${_id}">${label}:</label>
-        ${(_special === '')
-          ? html`<input id="${_id}" type="${_type}" value="${_value}" data-type="${field}" @keyup=${this._handler} @change=${this._handler} />`
-          : _special
-        }
-      </li>
-    `
-  }
-
-  helpTxt() : TemplateResult {
-    return html`
-      <ul class="help-block">
-        <li>To filter on multiple text fragments, separate each fragment with a semicolon <code>;</code></li>
-        <li>To only match from the start, use a caret <code>^</code> at the start of the fragment</li>
-        <li>To only match the end, use a dollar sign <code>$</code> at the end of the fragment</li>
-        <li>To exclude matched items, preceed your fragment with a exclamation mark <code>!</code> at the end of the fragment</li>
-      </ul>
-    `;
+      <h3 id="${id}--grp-label">Filter and sort: ${this.colName}</h3>
+      <div role="group" aria-labelledby="${id}--grp-label" class="fields${helpClass}">
+        <ul class="fields-list">
+          ${fields}
+        </ul>
+        ${helpBlock}
+        <button class="sort-btn ascending${ascClass}"
+                data-type="up"
+              @click=${this._handler}>
+          <span class="sr-only">${ascLabel}</span>
+        </button>
+        <button class="sort-btn decending${decClass}"
+                data-type="down"
+              @click=${this._handler}>
+          <span class="sr-only">${decLabel}</span>
+        </button>
+      </div>`;
   }
 
 
@@ -689,19 +431,6 @@ export class FilterSortCtrl extends LitElement {
       this._init();
     }
     const id = this.stateSlice + '__' + this.dataType;
-    let decClass = '';
-    let decLabel : string = 'Decending';
-    let ascClass = '';
-    let ascLabel : string = 'Ascending';
-    if (this.order < 0) {
-      decClass = ' decending-true';
-      decLabel = 'Sorted by decending Order'
-    } else if (this.order > 0) {
-      decClass = ' ascending-true';
-      decLabel = 'Sorted by ascending Order'
-    }
-    let helpBlock : TemplateResult|string = '';
-    let helpClass : string = '';
 
     const state = (this.expanded)
       ? 'show'
@@ -711,10 +440,8 @@ export class FilterSortCtrl extends LitElement {
         ${(this.expanded) ? 'Hide' : 'Show'} ${this.colName} filter controls
       </span>`;
 
-    // if (this.dataType === 'text') {
-    //   helpClass = ' fields--help';
-    //   helpBlock = helpTxt();
-    // }
+    const ui = this._renderUI(id)
+
 
     // console.group('render()')
     // console.log('this:', this)
@@ -723,40 +450,21 @@ export class FilterSortCtrl extends LitElement {
     // console.log('this.options:', this.options)
     // console.groupEnd()
 
-    return html`
-      <div class="th">
-        <button @click=${this._toggleExpanded} class="btn-open">
-          <slot></slot>
-          <span class="sr-only">${btnTxt}</span>
-        </button>
-      </th>
-      <div class="wrap wrap--${state}" aria-hidden="${!this.expanded}">
-        <button class="btn-close" @click=${this._toggleExpanded}>${btnTxt}</button>
-        <h3 id="${id}--grp-label">Filter and sort: ${this.colName}</h3>
-        <div role="group" aria-labelledby="${id}--grp-label" class="fields${helpClass}">
-          <ul class="fields-list">
-            ${(this.showMinMax)
-              ? [
-                  this._getInput(id, 'Minimum', this.min, 'min'),
-                  this._getInput(id, 'Maximum', this.max, 'max')
-                ]
-              : this._getInput(id, 'Filter by', 'auto', 'filter')}
-          </ul>
-          ${helpBlock}
-          <button class="sort-btn ascending${ascClass}"
-                  data-type="up"
-                 @click=${this._handler}>
-            <span class="sr-only">${ascLabel}</span>
-          </button>
-          <button class="sort-btn decending${decClass}"
-                  data-type="down"
-                 @click=${this._handler}>
-            <span class="sr-only">${decLabel}</span>
-          </button>
-        </div>
-      </div>
-      <button class="bg-close bg-close--${state}" @click=${this._toggleExpanded}>${btnTxt}</button>
-    `
+    return (!this.alwaysExpanded)
+      ? html`
+          <div class="th">
+            <button @click=${this._toggleExpanded} class="btn-open">
+              <slot></slot>
+              <span class="sr-only">${btnTxt}</span>
+            </button>
+          </th>
+          <div class="wrap wrap--${state}" aria-hidden="${!this.expanded}">
+            <button class="btn-close" @click=${this._toggleExpanded}>${btnTxt}</button>
+            ${ui}
+          </div>
+          <button class="bg-close bg-close--${state}" @click=${this._toggleExpanded}>${btnTxt}</button>
+        `
+      : ui
   }
 }
 

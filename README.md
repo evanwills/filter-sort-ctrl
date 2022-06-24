@@ -16,8 +16,8 @@
 -----
 ## Introduction
 
-`filter-sort-ctrl` is intended to provide for filtering & sorting
-objects by a single field.
+`filter-sort-ctrl` is intended to provide a user interface for 
+managing controls for filtering & sorting objects by a single field.
 
 The aim of this component is that it can be dropped into a listing
 table's column header and provide a simple UI for the end user to
